@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::too_many_arguments)]
@@ -36,12 +36,19 @@ use image::load_from_memory;
 
 
 fn main() {
-    println!("cargo:rustc-link-arg=icon.res");
-
+    let args: Vec<String> = env::args().collect();
+    let mut config_path = "config.json";
+    if args.len() > 1 {
+        if args[1] == "--config" && args.len() > 2 {
+            config_path = &args[2];
+            println!("Using config file: {}", config_path);
+        }
+    }
+    
     let cargo_pkg_version = env!("CARGO_PKG_VERSION");
     let working_dir = env::current_dir().expect("Could not get current dir");
 
-    let mut config_json = config_json::ConfigJson::read(Path::new("config.json"));
+    let mut config_json = config_json::ConfigJson::read(Path::new(config_path));
 
     let mut glfw = glfw::init(glfw::fail_on_errors).expect("Could not init GLFW");
 
@@ -675,63 +682,6 @@ fn load_mind_model(
         names,
     });
 
-    // 确保show_meshes正确传递到MindModel
-    // 处理显示状态 - 确保从正确路径加载配置
-    if let Ok(meshes_content) = std::fs::read_to_string("config.json") {
-        if let Ok(config) = serde_json::from_str::<ConfigJson>(&meshes_content) {
-            if !config.meshes.is_empty() {
-                println!("开始处理配置中的网格设置...");
-
-                // 遍历所有网格
-                for (j, mesh) in skin.meshes.iter().enumerate() {
-                    let mesh_name = &mesh.submesh.name;
-                    println!("\n检查网格: {}", mesh_name);
-
-                    // 查找匹配的配置项
-                    if let Some(mesh_json) = config.meshes[0]
-                        .iter()
-                        .find(|x| x.name_texture.contains_key(mesh_name))
-                    {
-                        // 设置显示状态
-                        show_meshes[j] = mesh_json.show;
-                        println!("设置显示状态: {}", mesh_json.show);
-
-                        // 处理材质索引
-                        if let Some(texture_name) = mesh_json.name_texture.get(mesh_name) {
-                            println!("配置指定的纹理: {}", texture_name);
-
-                            if let Some(texture_position) = textures_file_names
-                                .iter()
-                                .position(|x| x == texture_name)
-                            {
-                                textures_selecteds[j] = texture_position;
-                                println!("设置材质索引: {} (对应纹理: {})",
-                                         texture_position, texture_name);
-                            } else {
-                                println!("警告: 纹理 '{}' 未在加载的纹理列表中找到", texture_name);
-                            }
-                        }
-                    } else {
-                        println!("警告: 未找到此网格的配置");
-                    }
-                }
-
-                // 将材质索引应用到网格
-                println!("\n将材质索引应用到网格...");
-                for (j, mesh) in skin.meshes.iter_mut().enumerate() {
-                    mesh.submesh.material_index = textures_selecteds[j];
-                    println!("网格 {} -> 材质索引: {}",
-                             mesh.submesh.name, mesh.submesh.material_index);
-                }
-            } else {
-                println!("警告: 配置中没有网格数据");
-            }
-        } else {
-            println!("错误: 无法解析配置文件");
-        }
-    } else {
-        println!("错误: 无法读取config.json文件");
-    }
 
 
     // 然后创建MindModel实例

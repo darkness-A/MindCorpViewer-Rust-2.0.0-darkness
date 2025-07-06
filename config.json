@@ -1,6 +1,6 @@
 {
 	"MSAA": 4,
-	"Vsync": false,
+	"Vsync": true,
 	"ShowFloor": true,
 	"ShowSkybox": true,
 	"SynchronizedTime": false,

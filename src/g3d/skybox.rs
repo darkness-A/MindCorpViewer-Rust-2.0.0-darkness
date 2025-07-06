@@ -19,14 +19,10 @@ impl Skybox {
         );
         let refs = shader.get_refs(&["Skybox", "MVP"]);
 
-        let texture = Texture::load_cubemap(&[
-            include_bytes!("../../assets/skybox/right.dds"),
-            include_bytes!("../../assets/skybox/left.dds"),
-            include_bytes!("../../assets/skybox/top.dds"),
-            include_bytes!("../../assets/skybox/bottom.dds"),
-            include_bytes!("../../assets/skybox/front.dds"),
-            include_bytes!("../../assets/skybox/back.dds"),
-        ]);
+        // 修改为从单张DDS加载，假设文件名为skybox_all.dds
+        let texture = Texture::load_cubemap_from_single_dds(
+            include_bytes!("../../assets/skybox/ColorRed.dds")
+        );
 
         #[rustfmt::skip]
 		let skybox_vertices: [GLfloat; 24] = [

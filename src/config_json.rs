@@ -259,7 +259,7 @@ impl ConfigJson {
     pub fn new() -> ConfigJson {
         ConfigJson {
             msaa: Some(8),
-            vsync: false,
+            vsync: true,
             show_floor: true,
             show_skybox: true,
             synchronized_time: false,

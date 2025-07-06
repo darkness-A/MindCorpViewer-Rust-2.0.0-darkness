@@ -55,8 +55,78 @@ impl Texture {
 			Texture { id: texture_id, gltype: gl::TEXTURE_2D }
 		}
 	}
+    pub fn load_cubemap_from_single_dds(data: &[u8]) -> Self {
+        unsafe {
+            let mut texture_id = 0;
+            gl::GenTextures(1, &mut texture_id);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture_id);
 
-	#[rustfmt::skip]
+            let img = image::load_from_memory(data)
+                .expect("Failed to load DDS")
+                .into_rgba8();
+
+            let width = img.width();
+            let height = img.height();
+
+            // 横向排列要求：高度必须是宽度的1/6
+            assert_eq!(height * 6, width, "DDS文件必须是6个面横向排列");
+
+            let face_size = height; // 单个面尺寸等于图像高度
+
+            println!("检测到横向排列贴图: {}x{} (单个面尺寸: {}x{})", width, height, face_size, face_size);
+
+            // 定义立方体贴图目标顺序（与DDS文件中面的顺序对应）
+            let faces = [
+                gl::TEXTURE_CUBE_MAP_POSITIVE_X, // right 右侧
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_X, // left 左侧
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Y, // top 上面
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Y, // bottom 下面
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Z, // front 正面
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Z  // back 背面
+            ];
+
+            for (i, face) in faces.iter().enumerate() {
+                let mut face_buffer = vec![0u8; (face_size * face_size * 4) as usize];
+                for y in 0..face_size {
+                    for x in 0..face_size {
+                        let src_x = i as u32 * face_size + x;
+                        let pixel = img.get_pixel(src_x, y);
+                        let idx = ((y * face_size + x) * 4) as usize;
+                        face_buffer[idx] = pixel[0];
+                        face_buffer[idx+1] = pixel[1];
+                        face_buffer[idx+2] = pixel[2];
+                        face_buffer[idx+3] = pixel[3];
+                    }
+                }
+
+                gl::TexImage2D(
+                    *face,
+                    0,
+                    gl::RGBA as i32,
+                    face_size as i32,
+                    face_size as i32,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    face_buffer.as_ptr() as *const c_void
+                );
+            }
+
+            // 设置纹理参数
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+
+            Texture {
+                id: texture_id,
+                gltype: gl::TEXTURE_CUBE_MAP
+            }
+        }
+    }
+
+    #[rustfmt::skip]
     pub fn load_cubemap(source: &[&[u8]; 6]) -> Texture {
 		unsafe {
 			let mut texture_id: GLuint = 0;
