@@ -1,0 +1,15 @@
+cross_compile.sh
+cross_compile.bat
+
+assets/floor/old
+assets/skybox/old
+
+files/
+
+target/
+
+Cargo.lock
+
+**/*.rs.bk
+
+.vscode/

@@ -1,0 +1,45 @@
+[package]
+name = "mindcorpviewer-rust"
+version = "2.1.0"
+edition = "2024"
+authors = ["autergame"]
+
+[dependencies]
+dirs = "4.0"
+texture2ddecoder = { git = "https://github.com/autergame/texture2ddecoder", version = "0.0.6" }
+native-dialog = "0.7.0"
+freetype-rs = "0.36.0"
+
+byteorder = "1.5.0"
+image = "0.24.9"
+ddsfile = "0.4"
+
+mime = "0.3.17"
+glob = "0.3.1"
+
+gl = "0.14.0"
+glam = "0.25.0"
+glfw = { version = "0.59.0", features = ["image"] }
+gltf = { version = "1.4.1", features = [
+	"names",
+	"extras",
+	"KHR_materials_unlit",
+] }
+
+imgui = "0.12.0"
+
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+
+#[profile]
+#release = { strip = true }
+#release-with-debug = { inherits = "release", debug = true }
+[profile.release]
+opt-level = 3        # 最高级别优化（速度优先）
+lto = "fat"          # 全链路优化（提升10-20%性能）
+codegen-units = 1    # 单线程编译（增强优化效果）
+panic = "abort"      # 替换 panic 为直接终止（减少体积）
+strip = "symbols"    # 去除符号表（保护代码+减体积）
+# Windows 特有配置
+#[package.metadata.windows]
+#subsystem = "windows"

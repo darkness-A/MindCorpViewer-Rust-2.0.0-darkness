@@ -1,0 +1,14 @@
+{
+	"MSAA": 4,
+	"Vsync": false,
+	"ShowFloor": true,
+	"ShowSkybox": true,
+	"SynchronizedTime": false,
+	"ScreenShotResolution": [
+		1920,
+		1080
+	],
+	"PATHS": [],
+	"OPTIONS": [],
+	"MESHES": []
+}
