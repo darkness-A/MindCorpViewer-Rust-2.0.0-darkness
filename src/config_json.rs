@@ -1,9 +1,36 @@
 use gl::types::GLsizei;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs::File, io::Read, io::Write, path::Path};
-
+use std::sync::Mutex;
+use once_cell::sync::Lazy;
 use crate::MindModel;
+pub fn get_base_path() -> String {
+    let exe_path = env::current_exe().unwrap();
+    let base_dir = exe_path.parent().unwrap().to_str().unwrap().to_string();
+    base_dir
+}
 
+impl Default for ConfigJson {
+    fn default() -> Self {
+        ConfigJson {
+            msaa: Some(8),
+            vsync: true,
+            show_floor: true,
+            show_skybox: true,
+            synchronized_time: false,
+            screen_shot_resolution: [1920, 1080],
+            control_sensitivity: ControlSensitivity::default(),
+            paths: vec![],
+            options: vec![],
+            meshes: vec![],
+            skybox_file: "./skybox/Default.dds".parse().unwrap(),
+        }
+    }
+}
+
+pub static CONFIG_JSON: Lazy<Mutex<ConfigJson>> = Lazy::new(|| {
+    Mutex::new(ConfigJson::default())
+});
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PathJson {
     #[serde(rename = "Name")]
@@ -62,6 +89,8 @@ pub struct OptionsJson {
 
     #[serde(rename = "PositionOffset")]
     pub position_offset: [f32; 3],
+
+
 }
 
 impl OptionsJson {
@@ -104,20 +133,20 @@ pub struct ControlSensitivity {
     #[serde(rename = "Rotate", default = "default_rotate")]
     pub rotate: f32,
 }
-
+impl Default for ControlSensitivity {
+    fn default() -> Self {
+        ControlSensitivity {
+            rotate: 0.5,
+            pan: 0.7,
+            zoom: 1.0,
+        }
+    }
+}
 fn default_zoom() -> f32 { 75.0 }
 fn default_pan() -> f32 { 0.20 }
 fn default_rotate() -> f32 { 0.03 }
 
-impl Default for ControlSensitivity {
-    fn default() -> Self {
-        Self {
-            zoom: default_zoom(),
-            pan: default_pan(),
-            rotate: default_rotate(),
-        }
-    }
-}
+
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ConfigJson {
@@ -132,6 +161,7 @@ pub struct ConfigJson {
 
     #[serde(rename = "ShowSkybox")]
     pub show_skybox: bool,
+
 
     #[serde(rename = "SynchronizedTime")]
     pub synchronized_time: bool,
@@ -150,6 +180,9 @@ pub struct ConfigJson {
 
     #[serde(rename = "MESHES")]
     pub meshes: Vec<Vec<MeshJson>>,
+
+    #[serde(rename = "SkyboxFile")]
+    pub skybox_file: String,
 }
 
 impl ConfigJson {
@@ -268,6 +301,8 @@ impl ConfigJson {
             paths: vec![],
             options: vec![],
             meshes: vec![],
+            skybox_file: String::new(),
+
         }
     }
 }
@@ -279,3 +314,7 @@ fn pretty_json(config_json: &ConfigJson) -> Result<String, serde_json::Error> {
     config_json.serialize(&mut serializer)?;
     Ok(unsafe { String::from_utf8_unchecked(buffer) })
 }
+
+use std::env;
+
+// 在结构体定义之后或 impl 块内添加以下函数

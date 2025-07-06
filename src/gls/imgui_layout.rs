@@ -2,10 +2,7 @@ use glfw::Glfw;
 use native_dialog::FileDialog;
 use std::path::PathBuf;
 use imgui::StyleColor;
-use crate::{
-    config_json::{ConfigJson, OptionsJson},
-    export, MindModel,
-};
+use crate::{config_json::{ConfigJson, OptionsJson}, export, MindModel};
 
 pub fn settings(
     ui: &imgui::Ui,
@@ -15,6 +12,7 @@ pub fn settings(
     config_json: &mut ConfigJson,
     camera_pos: &mut glam::Vec3,  // 新增相机位置参数
     camera_rotation: &mut glam::Vec2,  // 新增相机旋转参数
+
 ) {
     if has_samples && ui.checkbox("开启多重采样抗锯齿(MSAA)", use_samples) {
         match use_samples {
@@ -42,6 +40,43 @@ pub fn settings(
     ui.checkbox("显示地面(Show Floor)", &mut config_json.show_floor);
     ui.checkbox("显示天空(Show Skybox)", &mut config_json.show_skybox);
 
+    if config_json.show_skybox {
+        if let Ok(entries) = std::fs::read_dir("skybox") {
+            let mut files: Vec<String> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().map_or(false, |ext| ext == "dds"))
+                .map(|e| {
+                    e.path()
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string()
+                })
+                .collect();
+
+            if !files.is_empty() {
+                let current_file = config_json.skybox_file
+                    .split('/')
+                    .last()
+                    .unwrap_or("Default.dds");
+
+                let mut selected_index = 0;
+
+                if let Some(index) = files.iter().position(|f| f.contains(current_file)) {
+                    selected_index = index;
+                }
+
+                if ui.combo("##skybox_file", &mut selected_index, &files, |item| {
+                    item.clone().into()
+                }) {
+                    config_json.skybox_file = format!("./skybox/{}", files[selected_index]);
+                }
+            }
+        }
+    }
+
+
     ui.checkbox("时间同步(Synchronized Time)", &mut config_json.synchronized_time);
     if ui.is_item_hovered() {
         ui.tooltip(|| {
@@ -49,9 +84,9 @@ pub fn settings(
         });
     }
 
-    
-    
-    
+
+
+
     ui.separator();
     // 缩放灵敏度
     ui.text("缩放灵敏度(Zoom):");
@@ -140,7 +175,7 @@ pub fn model(
                 }
             }
         });
-    
+
     ui.tree_node_config("动画(Animations)")
         .flags(imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH)
         .framed(true)
@@ -182,7 +217,7 @@ pub fn model(
             );
         });
 
-    
+
 
     ui.tree_node_config("位置(Position)")
         .flags(imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH)
@@ -243,15 +278,15 @@ pub struct AddModel {
 }
 
 impl AddModel {
-	pub fn new() -> Self {
-		Self {
-			name: String::new(),
-			skin: String::new(),
-			skeleton: String::new(),
-			textures: String::new(),
-			animations: String::new(),
-		}
-	}
+    pub fn new() -> Self {
+        Self {
+            name: String::new(),
+            skin: String::new(),
+            skeleton: String::new(),
+            textures: String::new(),
+            animations: String::new(),
+        }
+    }
 }
 
 pub fn add_model<F>(
@@ -384,24 +419,24 @@ pub fn add_model<F>(
                     .unwrap()
                 {
                     if let Ok(json_str) = std::fs::read_to_string(&path) {
-                            if let Ok(config) = serde_json::from_str::<ConfigJson>(&json_str) {
-                                if !config.paths.is_empty() {
-                                    let path = &config.paths[0];
-                                    add_model.name = path.name.clone();
-                                    add_model.skin = path.skin.clone();
-                                    add_model.skeleton = path.skeleton.clone();
-                                    add_model.textures = path.textures.clone();
-                                    add_model.animations = path.animations.clone();
+                        if let Ok(config) = serde_json::from_str::<ConfigJson>(&json_str) {
+                            if !config.paths.is_empty() {
+                                let path = &config.paths[0];
+                                add_model.name = path.name.clone();
+                                add_model.skin = path.skin.clone();
+                                add_model.skeleton = path.skeleton.clone();
+                                add_model.textures = path.textures.clone();
+                                add_model.animations = path.animations.clone();
 
-                                    // 如果配置中有MESHES数据，保存到临时文件供后续使用
-                                    if !config.meshes.is_empty() {
-                                        let _ = std::fs::write(
-                                            "temp_meshes.json",
-                                            serde_json::to_string_pretty(&config.meshes[0]).unwrap()
-                                        );
-                                    }
+                                // 如果配置中有MESHES数据，保存到临时文件供后续使用
+                                if !config.meshes.is_empty() {
+                                    let _ = std::fs::write(
+                                        "temp_meshes.json",
+                                        serde_json::to_string_pretty(&config.meshes[0]).unwrap()
+                                    );
                                 }
                             }
+                        }
                     }
                 }
             }

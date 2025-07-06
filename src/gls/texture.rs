@@ -5,6 +5,7 @@ use std::{
     os::raw::c_void,
 };
 
+#[derive(Debug)]
 pub struct Texture {
     pub id: GLuint,
     pub gltype: GLenum,
@@ -167,7 +168,79 @@ impl Texture {
 			Texture { id: texture_id, gltype: gl::TEXTURE_CUBE_MAP }
 		}
 	}
+    pub fn load_cubemap_from_single_dds_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, String> {
+        println!("开始加载天空盒");
+        use image::GenericImageView;
 
+        let img = image::open(path)
+            .map_err(|e| format!("Failed to open DDS file: {:?}", e))?
+            .into_rgba8();
+
+        let width = img.width();
+        let height = img.height();
+        let face_size = height;
+
+        assert_eq!(width, height * 6, "DDS文件必须是6个面横向排列");
+
+        unsafe {
+            let mut texture_id = 0;
+            gl::GenTextures(1, &mut texture_id);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture_id);
+
+            let faces = [
+                gl::TEXTURE_CUBE_MAP_POSITIVE_X,
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+            ];
+
+            for (i, face) in faces.iter().enumerate() {
+                let mut face_buffer = vec![0u8; (face_size * face_size * 4) as usize];
+                for y in 0..face_size {
+                    for x in 0..face_size {
+                        let src_x = i as u32 * face_size + x;
+                        let pixel = img.get_pixel(src_x, y);
+                        let idx = ((y * face_size + x) * 4) as usize;
+                        face_buffer[idx] = pixel[0];
+                        face_buffer[idx + 1] = pixel[1];
+                        face_buffer[idx + 2] = pixel[2];
+                        face_buffer[idx + 3] = pixel[3];
+                    }
+                }
+
+                gl::TexImage2D(
+                    *face,
+                    0,
+                    gl::RGBA as i32,
+                    face_size as i32,
+                    face_size as i32,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    face_buffer.as_ptr() as *const c_void,
+                );
+            }
+
+            // 设置纹理参数
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+            println!("加载完成");
+
+            Ok(Texture {
+                id: texture_id,
+                gltype: gl::TEXTURE_CUBE_MAP,
+            })
+        }
+    }
+
+    pub unsafe fn delete(self) {
+        gl::DeleteTextures(1, &self.id);
+    }
     pub fn bind(&self) {
         unsafe {
             gl::BindTexture(self.gltype, self.id);

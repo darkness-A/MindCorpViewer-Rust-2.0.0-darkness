@@ -4,7 +4,12 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
 
-use crate::config_json::ConfigJson;
+use once_cell::sync::OnceCell;
+use std::sync::Mutex;
+use crate::config_json::{ConfigJson, CONFIG_JSON};
+
+// 在 main() 函数外定义
+static LAST_SKYBOX_PATH: OnceCell<Mutex<String>> = OnceCell::new();
 use glfw::{Action, Context, GlfwReceiver, Key};
 use std::{
     env,
@@ -44,12 +49,18 @@ fn main() {
             println!("Using config file: {}", config_path);
         }
     }
-    
+
     let cargo_pkg_version = env!("CARGO_PKG_VERSION");
     let working_dir = env::current_dir().expect("Could not get current dir");
 
     let mut config_json = config_json::ConfigJson::read(Path::new(config_path));
-
+    // 更新全局 CONFIG_JSON
+    if let Ok(mut global_config) = CONFIG_JSON.lock() {
+        *global_config = config_json.clone();
+        //println!("🔄 全局配置已更新");
+    } else {
+        eprintln!("❌ 无法锁定全局配置锁");
+    }
     let mut glfw = glfw::init(glfw::fail_on_errors).expect("Could not init GLFW");
 
     let msaa = config_json.msaa.unwrap_or(8);
@@ -145,7 +156,8 @@ fn main() {
     }
 
     let floor = Floor::new();
-    let skybox = Skybox::new();
+    static SKYBOX_INSTANCE: OnceCell<Mutex<Box<Skybox>>> = OnceCell::new();
+    let mut skybox_initialized = false;
 
     let shaders = Shaders::new();
     let refs = Refs::new(&shaders);
@@ -296,7 +308,8 @@ fn main() {
                     &mut use_samples,
                     &mut config_json,
                     &mut translation,  // 传入相机位置
-                    &mut yaw_pitch    // 传入相机旋转
+                    &mut yaw_pitch,    // 传入相机旋转
+
                 );
 
                 ui.separator();
@@ -436,7 +449,63 @@ fn main() {
         }
 
         if config_json.show_skybox {
-            skybox.render(&view_matrix, &projection_matrix);
+            if !skybox_initialized {
+                match SKYBOX_INSTANCE.set(Mutex::new(Box::new(Skybox::new()))) {
+                    Ok(_) => {
+                        skybox_initialized = true;
+                        println!("☁️ Skybox 已创建");
+
+                        // 🔁 首次创建后立即加载贴图
+                        if let Some(mutex) = SKYBOX_INSTANCE.get() {
+                            let mut skybox = mutex.lock().unwrap();
+                            skybox.update();
+                            println!("🆕 首次加载天空盒贴图");
+                        }
+
+                        unsafe {
+                            LAST_SKYBOX_PATH.get_or_init(|| Mutex::new(config_json.skybox_file.clone()));
+                        }
+                    }
+                    Err(_) => {
+                        println!("⚠️ Skybox 已经被初始化");
+                    }
+                }
+            }
+
+            unsafe {
+                let current_path = config_json.skybox_file.clone();
+                // 更新全局 CONFIG_JSON
+                if let Ok(mut global_config) = CONFIG_JSON.lock() {
+                    *global_config = config_json.clone();
+                    println!("🔄 全局配置已更新");
+                } else {
+                    eprintln!("❌ 无法锁定全局配置锁");
+                }
+
+                // 获取或初始化 LAST_SKYBOX_PATH
+                if let Some(last_path_cell) = LAST_SKYBOX_PATH.get() {
+                    let mut last_path = last_path_cell.lock().unwrap();
+                    //println!("当前skybox 路径: {} 上一次skybox 路径: {}", current_path,last_path);
+                    if current_path != *last_path {
+                        println!("路径已改变，正在更新贴图...");
+                        // 路径发生变化，更新贴图
+                        if let Some(mutex) = SKYBOX_INSTANCE.get() {
+                            let mut skybox = mutex.lock().unwrap();
+                            skybox.update();
+                            println!("🔄 更新天空盒贴图: {}", current_path);
+                        }
+                        *last_path = current_path;
+                    }
+                    // ... 使用 last_path ...
+                }
+
+
+            }
+
+            if let Some(mutex) = SKYBOX_INSTANCE.get() {
+                let skybox = mutex.lock().unwrap();
+                skybox.render(&view_matrix, &projection_matrix);
+            }
         }
 
         if config_json.show_floor {
