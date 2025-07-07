@@ -123,8 +123,14 @@ impl Model {
                 options.position_offset[1],
                 options.position_offset[2],
             ));
-            
-            let mvp_matrix = *projection_view_matrix * model_matrix;
+            let rotation_matrix = glam::Mat4::from_euler(
+                glam::EulerRot::XYZ,
+                options.rotation_angles[0].to_radians(),
+                options.rotation_angles[1].to_radians(),
+                options.rotation_angles[2].to_radians(),
+            );
+
+            let mvp_matrix = *projection_view_matrix * model_matrix *rotation_matrix;
 
             gl::UniformMatrix4fv(
                 self.mvp_ref,

@@ -477,7 +477,7 @@ fn main() {
                 // 更新全局 CONFIG_JSON
                 if let Ok(mut global_config) = CONFIG_JSON.lock() {
                     *global_config = config_json.clone();
-                    println!("🔄 全局配置已更新");
+                    //println!("🔄 全局配置已更新");
                 } else {
                     eprintln!("❌ 无法锁定全局配置锁");
                 }

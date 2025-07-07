@@ -89,7 +89,9 @@ pub struct OptionsJson {
 
     #[serde(rename = "PositionOffset")]
     pub position_offset: [f32; 3],
-
+    
+    #[serde(rename = "Rotation_angles")]
+    pub rotation_angles: [f32; 3],
 
 }
 
@@ -109,6 +111,7 @@ impl OptionsJson {
             animation_speed: 1.0f32,
             selected_animation_path: String::new(),
             position_offset: [0.0, 0.0, 0.0],
+            rotation_angles: [0.0, 0.0, 0.0],
         }
     }
 }

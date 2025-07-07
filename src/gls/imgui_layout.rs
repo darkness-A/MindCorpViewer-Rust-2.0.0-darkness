@@ -44,7 +44,7 @@ pub fn settings(
         if let Ok(entries) = std::fs::read_dir("skybox") {
             let mut files: Vec<String> = entries
                 .filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().map_or(false, |ext| ext == "dds"))
+                .filter(|e| e.path().extension().map_or(false, |ext| ext == "dds"|| ext == "png" || ext == "jpg"))
                 .map(|e| {
                     e.path()
                         .file_name()
@@ -248,6 +248,37 @@ pub fn model(
                 options.position_offset[0] = 0.0;
                 options.position_offset[1] = 0.0;
                 options.position_offset[2] = 0.0;
+            }
+        });
+    ui.tree_node_config("旋转(Rotation)")
+        .flags(imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH)
+        .framed(true)
+        .build(|| {
+            ui.text("X轴旋转(X Rotation):  ");
+            ui.same_line();
+            ui.slider_config("##x_rotation", -180.0f32, 180.0f32)
+                .display_format("%.2f°")
+                .flags(imgui::SliderFlags::ALWAYS_CLAMP)
+                .build(&mut options.rotation_angles[0]);
+
+            ui.text("Y轴旋转(Y Rotation):  ");
+            ui.same_line();
+            ui.slider_config("##y_rotation", -180.0f32, 180.0f32)
+                .display_format("%.2f°")
+                .flags(imgui::SliderFlags::ALWAYS_CLAMP)
+                .build(&mut options.rotation_angles[1]);
+
+            ui.text("Z轴旋转(Z Rotation):  ");
+            ui.same_line();
+            ui.slider_config("##z_rotation", -180.0f32, 180.0f32)
+                .display_format("%.2f°")
+                .flags(imgui::SliderFlags::ALWAYS_CLAMP)
+                .build(&mut options.rotation_angles[2]);
+
+            if ui.button("重置旋转(Reset Rotation)") {
+                options.rotation_angles[0] = 0.0;
+                options.rotation_angles[1] = 0.0;
+                options.rotation_angles[2] = 0.0;
             }
         });
 
