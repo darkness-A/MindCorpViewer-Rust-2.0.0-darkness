@@ -19,6 +19,7 @@ use std::{
     path::Path,
     rc::Rc,
 };
+use gl::TRUE;
 use glfw::ffi::{glfwSetWindowIcon};
 
 use imgui::StyleColor;
@@ -309,12 +310,7 @@ fn main() {
                     &mut config_json,
                     &mut translation,  // 传入相机位置
                     &mut yaw_pitch,    // 传入相机旋转
-
                 );
-
-                ui.separator();
-
-
 
                 for i in 0..mind_models.len() {
                     let _model_id = ui.push_id_usize(i);
@@ -386,6 +382,9 @@ fn main() {
                 }
 
                 ui.separator();
+
+               
+
 
                 imgui_layout::add_model(ui, &working_dir, &mut add_model, |add_model| {
                     mind_models.push(load_mind_model(
@@ -601,6 +600,7 @@ pub struct MindModel {
     pub animations: Vec<Animation>,
     pub animation_selected: usize,
     pub animations_file_names: Vec<String>,
+    pub export_animations: Option<bool>, // 新增字段，用于保存导出动画的状态
 }
 
 fn load_mind_model(
@@ -766,6 +766,7 @@ fn load_mind_model(
         textures_selecteds,
         show_meshes,
         joints_transforms,
+        export_animations: None,
     }
 }
 struct Mouse {

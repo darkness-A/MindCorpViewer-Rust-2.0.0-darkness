@@ -4,6 +4,11 @@ use std::path::PathBuf;
 use imgui::StyleColor;
 use crate::{config_json::{ConfigJson, OptionsJson}, export, MindModel};
 
+
+#[derive(Debug, Clone)]
+pub struct SharedModelData {
+    pub position_offset: [f32; 3],
+}
 pub fn settings(
     ui: &imgui::Ui,
     glfw: &mut Glfw,
@@ -108,7 +113,7 @@ pub fn settings(
         .build(&mut config_json.control_sensitivity.rotate);
 
 
-    let _button_style = ui.push_style_color(imgui::StyleColor::Button, [1.0, 0.3, 0.3, 1.0]);
+    let _button_style = ui.push_style_color(imgui::StyleColor::Button, [0.3, 0.7, 1.0, 1.0]);
     if ui.button("重置镜头坐标(Reset)") {
         *camera_pos = glam::Vec3::new(0.0, 0.0, 5.0);
         *camera_rotation = glam::Vec2::new(90.0, 70.0);
@@ -138,7 +143,9 @@ pub fn model(
     mind_model: &mut MindModel,
     export_as: &mut u8,
     name: &String,
+
 ) {
+
     let _header_style = ui.push_style_color(StyleColor::Header, [0.2, 0.5, 0.3, 1.0]);      // 深绿
     let _hover_style = ui.push_style_color(StyleColor::HeaderHovered, [0.3, 0.6, 0.4, 1.0]); // 浅绿
     let _active_style = ui.push_style_color(StyleColor::HeaderActive, [0.1, 0.4, 0.2, 1.0]); // 墨绿
@@ -225,21 +232,21 @@ pub fn model(
         .build(|| {
             ui.text("X轴左右偏移(X Offset):  ");
             ui.same_line();
-            ui.slider_config("##x_offset", -700.0f32, 700.0f32)
+            ui.slider_config("##x_offset", -1000.0f32, 1000.0f32)
                 .display_format("%.2f")
                 .flags(imgui::SliderFlags::ALWAYS_CLAMP)
                 .build(&mut options.position_offset[0]);
 
             ui.text("Y轴上下偏移(Y Offset):  ");
             ui.same_line();
-            ui.slider_config("##y_offset", -700.0f32, 700.0f32)
+            ui.slider_config("##y_offset", -1000.0f32, 1000.0f32)
                 .display_format("%.2f")
                 .flags(imgui::SliderFlags::ALWAYS_CLAMP)
                 .build(&mut options.position_offset[1]);
 
             ui.text("Z轴前后偏移(Z Offset):  ");
             ui.same_line();
-            ui.slider_config("##z_offset", -700.0f32, 700.0f32)
+            ui.slider_config("##z_offset", -1000.0f32, 1000.0f32)
                 .display_format("%.2f")
                 .flags(imgui::SliderFlags::ALWAYS_CLAMP)
                 .build(&mut options.position_offset[2]);
@@ -249,7 +256,10 @@ pub fn model(
                 options.position_offset[1] = 0.0;
                 options.position_offset[2] = 0.0;
             }
+
+
         });
+    
     ui.tree_node_config("旋转(Rotation)")
         .flags(imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH)
         .framed(true)
@@ -289,8 +299,12 @@ pub fn model(
         .build(|| {
             ui.radio_button("导出为gltf(Export as gltf)", export_as, 0);
             ui.radio_button("导出为glb(Export as glb)", export_as, 1);
+            let export_animations = mind_model.export_animations.unwrap_or(true);
+            if ui.checkbox("导出动画(Export Animations)", &mut mind_model.export_animations.get_or_insert(true)) {
+                // 状态变更自动保存到模型中
+            }
             if ui.button_with_size("导出模型(Export Model)", [ui.content_region_avail()[0], 0.0f32]) {
-                export::export_model(*export_as, name, mind_model);
+                export::export_model(*export_as, name, mind_model, export_animations);
             }
             if ui.is_item_hovered() {
                 ui.tooltip(|| {

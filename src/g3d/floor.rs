@@ -19,19 +19,51 @@ impl Floor {
         );
         let refs = shader.get_refs(&["Diffuse", "MVP"]);
 
-        let texture = Texture::load_texture(include_bytes!("../../assets/floor/floor.dds"));
+        let texture = Texture::load_texture(include_bytes!("../../assets/floor/floor2.dds"));
+
+        // #[rustfmt::skip]
+		// let floor_vertices: [GLfloat; 30] = [
+		// 	 750.0f32, 0.0f32,  750.0f32, 0.0f32, 1.0f32,
+		// 	 750.0f32, 0.0f32, -750.0f32, 0.0f32, 0.0f32,
+		// 	-750.0f32, 0.0f32,  750.0f32, 1.0f32, 1.0f32,
+		// 	 750.0f32, 0.0f32, -750.0f32, 0.0f32, 0.0f32,
+		// 	-750.0f32, 0.0f32, -750.0f32, 1.0f32, 0.0f32,
+		// 	-750.0f32, 0.0f32,  750.0f32, 1.0f32, 1.0f32,
+		// ];
 
         #[rustfmt::skip]
-		let floor_vertices: [GLfloat; 30] = [
-			 750.0f32, 0.0f32,  750.0f32, 0.0f32, 1.0f32,
-			 750.0f32, 0.0f32, -750.0f32, 0.0f32, 0.0f32,
-			-750.0f32, 0.0f32,  750.0f32, 1.0f32, 1.0f32,
-			 750.0f32, 0.0f32, -750.0f32, 0.0f32, 0.0f32,
-			-750.0f32, 0.0f32, -750.0f32, 1.0f32, 0.0f32,
-			-750.0f32, 0.0f32,  750.0f32, 1.0f32, 1.0f32,
-		];
+        let floor_width = 1024.0;  // 匹配纹理宽度
+        let floor_height = 1024.0; // 匹配纹理高度
+        let half_width = floor_width / 2.0;
+        let half_height = floor_height / 2.0;
 
+        let floor_vertices: [GLfloat; 30] = [
+            // X     Y    Z       U    V
+            half_width, 0.0,  half_height,  1.0, 0.0,
+            -half_width, 0.0,  half_height,  0.0, 0.0,
+            half_width, 0.0, -half_height,  1.0, 1.0,
+
+            -half_width, 0.0, -half_height,  0.0, 1.0,
+            half_width, 0.0, -half_height,  1.0, 1.0,
+            -half_width, 0.0,  half_height,  0.0, 0.0,
+        ];
+        // #[rustfmt::skip]
+        //      let floor_size = 2048.0f32; // 扩展到 2000x2000，可根据需求调整
+        // let uv_scale = 1.0f32;      // 纹理重复次数，可以控制贴图拉伸/平铺
+        //
+        // let floor_vertices: [GLfloat; 30] = [
+        //     // 第一个三角形（翻转顺序）
+        //      floor_size, 0.0,  floor_size,  1.0, 0.0, // 原来的第三个顶点
+        //     -floor_size, 0.0,  floor_size,  0.0, 0.0, // 原来的第一个顶点
+        //      floor_size, 0.0, -floor_size,  1.0, 1.0, // 原来的第二个顶点
+        //
+        //     // 第二个三角形（翻转顺序）
+        //     -floor_size, 0.0, -floor_size,  0.0, 1.0, // 原来的第六个顶点
+        //      floor_size, 0.0, -floor_size,  1.0, 1.0, // 原来的第四个顶点
+        //     -floor_size, 0.0,  floor_size,  0.0, 0.0, // 原来的第五个顶点
+        // ];
         unsafe {
+
             shader.enable();
             gl::Uniform1i(refs[0], 0);
 

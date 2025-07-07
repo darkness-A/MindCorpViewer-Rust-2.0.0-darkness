@@ -21,6 +21,10 @@ impl Texture {
 			gl::GenTextures(1, &mut texture_id);
 			gl::BindTexture(gl::TEXTURE_2D, texture_id);
 
+
+
+
+
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, 0);
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, 1.max(images.len() - 1) as GLint);
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);

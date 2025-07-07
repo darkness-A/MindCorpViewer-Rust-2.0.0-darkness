@@ -6,6 +6,8 @@ use std::{
     io::{Cursor, Write},
     mem,
     path::Path,
+    env,
+    path::PathBuf
 };
 
 use gltf::{
@@ -27,9 +29,15 @@ use crate::{
     lol::{anm, Animation, Skeleton, Skin},
     MindModel,
 };
+use std::process::Command;
+pub fn export_model(export_as: u8, model_name: &String, mind_model: &MindModel, export_animations: bool) {
+    let current_dir = env::current_dir().expect("无法获取当前工作目录");
+    let mut export_path_buf: PathBuf = current_dir;
+    export_path_buf.push(format!("export\\{}", model_name));
 
-pub fn export_model(export_as: u8, model_name: &String, mind_model: &MindModel) {
-    let export_path = format!("export/{model_name}");
+    let export_path = export_path_buf.to_str().expect("无效的文件路径").to_string();
+
+    // let export_path = format!("export/{model_name}");
     if export_as == 0 {
         fs::create_dir_all(&export_path).expect("Could not create export dirs");
     }
@@ -89,20 +97,22 @@ pub fn export_model(export_as: u8, model_name: &String, mind_model: &MindModel) 
 
     let mut animations_gltf = vec![];
 
-    for i in 0..mind_model.animations.len() {
-        let (animation_gltf, animation_data, animation_buffer_view, animation_accessor) =
-            make_animation(
-                &mind_model.skeleton,
-                &mind_model.animations[i],
-                &mind_model.animations_file_names[i],
-                &mut accessor_index,
-                &mut buffer_view_index,
-                &mut buffer_view_offset,
-            );
-        animations_gltf.push(animation_gltf);
-        all_datas.push(animation_data);
-        buffer_views.push(animation_buffer_view);
-        accessors.extend_from_slice(&animation_accessor);
+    if export_animations {
+        for i in 0..mind_model.animations.len() {
+            let (animation_gltf, animation_data, animation_buffer_view, animation_accessor) =
+                make_animation(
+                    &mind_model.skeleton,
+                    &mind_model.animations[i],
+                    &mind_model.animations_file_names[i],
+                    &mut accessor_index,
+                    &mut buffer_view_index,
+                    &mut buffer_view_offset,
+                );
+            animations_gltf.push(animation_gltf);
+            all_datas.push(animation_data);
+            buffer_views.push(animation_buffer_view);
+            accessors.extend_from_slice(&animation_accessor);
+        }
     }
 
     let all_data_1d = vec_2d_to_vec_1d(&all_datas);
@@ -170,7 +180,17 @@ pub fn export_model(export_as: u8, model_name: &String, mind_model: &MindModel) 
         writer_data_bin
             .write_all(&all_data_1d)
             .expect("Could not write gltf bin");
+        println!("Export completed. {}",export_path);
+        Command::new("explorer")
+            .arg(export_path)
+            .spawn()
+            .expect("Failed to open explorer");
     } else {
+        let current_dir = env::current_dir().expect("无法获取当前工作目录");
+        let mut export_file_buf: PathBuf = current_dir;
+        export_file_buf.push(format!("export\\{}.glb", model_name));
+
+        let export_file = export_file_buf.to_str().expect("无效的文件路径").to_string();
         let json_string = root.to_string().expect("Could not serialize glb");
 
         let glb = gltf::binary::Glb {
@@ -183,10 +203,16 @@ pub fn export_model(export_as: u8, model_name: &String, mind_model: &MindModel) 
             json: borrow::Cow::Owned(json_string.into_bytes()),
         };
 
-        let outputglb = format!("export/{model_name}.glb");
-        let writerglb = File::create(outputglb).expect("Could not create glb file");
+        // let outputglb = format!("export/{model_name}.glb");
+        let writerglb = File::create(&export_file).expect("Could not create glb file");
         glb.to_writer(writerglb).expect("Could not write glb");
+        println!("Export completed. {}", export_file);
+        Command::new("explorer")
+            .arg("export")
+            .spawn()
+            .expect("Failed to open explorer");
     }
+
 }
 
 fn make_animation(

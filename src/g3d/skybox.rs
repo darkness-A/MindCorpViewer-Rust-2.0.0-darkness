@@ -154,7 +154,7 @@ impl Skybox {
             let texture = match texture_guard.as_ref() {
                 Some(texture) => texture,
                 None => {
-                    eprintln!("🖼️ 纹理未加载");
+                    //eprintln!("🖼️ 纹理未加载");
                     return;
                 }
             };
